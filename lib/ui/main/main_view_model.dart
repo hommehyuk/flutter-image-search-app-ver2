@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:image_search_app2/core/result.dart';
 import 'package:image_search_app2/data/model/image_item.dart';
 import 'package:image_search_app2/data/repository/image_item_repository.dart';
+import 'package:image_search_app2/ui/main/main_event.dart';
 import 'package:image_search_app2/ui/main/main_state.dart';
 
 class MainViewModel extends ChangeNotifier {
@@ -10,6 +13,10 @@ class MainViewModel extends ChangeNotifier {
   MainState _state = const MainState();
 
   MainState get state => _state;
+
+  final _eventController = StreamController<MainEvent>();
+
+  Stream<MainEvent> get eventStream => _eventController.stream;
 
   MainViewModel({
     required ImageItemRepository imageItemRepository,
@@ -28,13 +35,13 @@ class MainViewModel extends ChangeNotifier {
           imageItems: result.data,
         );
         notifyListeners();
-
       case Error<List<ImageItem>>():
         _state = state.copyWith(
           isLoading: false,
           imageItems: [],
         );
         notifyListeners();
+        _eventController.add(const MainEvent.dataLoadingError());
     }
   }
 }

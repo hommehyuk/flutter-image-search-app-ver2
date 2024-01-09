@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_search_app2/ui/main/main_event.dart';
+import 'package:image_search_app2/ui/main/main_view_model.dart';
 import 'package:provider/provider.dart';
 
 class MainScreen extends StatefulWidget {
@@ -11,15 +16,36 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   final _textController = TextEditingController();
 
+  StreamSubscription<MainEvent>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      final viewModel = context.read<MainViewModel>();
+      _subscription = viewModel.eventStream.listen((event) {
+        switch (event) {
+          case DataLoadingError():
+            const snackBar = SnackBar(
+              content: Text('데이터 로딩 어쩌구 저쩌구'),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+        }
+      });
+    });
+  }
+
   @override
   void dispose() {
+    _subscription?.cancel();
     _textController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch();
+    final viewModel = context.watch<MainViewModel>();
     final state = viewModel.state;
     return Scaffold(
       appBar: AppBar(
@@ -40,11 +66,24 @@ class _MainScreenState extends State<MainScreen> {
           ),
           state.isLoading
               ? const CircularProgressIndicator()
-              : ListView.builder(
-                  itemBuilder: (context, index) {
-                    final imageItem = state.imageItems[index];
-                    return Text(imageItem.tags);
-                  },
+              : Expanded(
+                  child: ListView.builder(
+                    itemCount: state.imageItems.length,
+                    itemBuilder: (context, index) {
+                      final imageItem = state.imageItems[index];
+                      return GestureDetector(
+                        onTap: () {
+                          context.push('/detail', extra: imageItem);
+                        },
+                        child: Image.network(
+                          imageItem.imageUrl,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        ),
+                      );
+                    },
+                  ),
                 ),
         ],
       ),
